@@ -1,0 +1,93 @@
+:root {
+    --bg-color: #0f0f13;
+    --text-color: #ffffff;
+    --accent-color: #7000ff;
+    --secondary-accent: #00d4ff;
+    --font-family: 'Inter', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body,
+html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: var(--font-family);
+    color: var(--text-color);
+}
+
+#app-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background: radial-gradient(circle at center, #1a1a24 0%, #0f0f13 100%);
+}
+
+.instruction {
+    z-index: 10;
+    text-align: center;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.instruction h1 {
+    font-weight: 600;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.instruction p {
+    font-weight: 300;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.visual-feedback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
+}
+
+/* Dynamic State Classes */
+body.swiping-left .visual-feedback {
+    width: 600px;
+    height: 600px;
+    opacity: 0.4;
+    background: radial-gradient(circle, #ff0055 0%, transparent 70%);
+    /* Different color for left swipe */
+}
+
+body.swiping-right .visual-feedback {
+    width: 600px;
+    height: 600px;
+    opacity: 0.4;
+    background: radial-gradient(circle, var(--secondary-accent) 0%, transparent 70%);
+    /* Different color for right swipe */
+}
+
+/* Text glow effect on interaction */
+body.active .instruction {
+    opacity: 1;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}

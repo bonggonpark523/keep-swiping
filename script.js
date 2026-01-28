@@ -1,68 +1,65 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const appContainer = document.getElementById('app-container');
-    const instruction = document.querySelector('.instruction');
+    const debugLog = document.getElementById('debug-log');
+    const testAudioBtn = document.getElementById('test-audio');
 
+    // Debug logging function
+    function log(msg) {
+        console.log(msg);
+        const p = document.createElement('p');
+        p.textContent = `${new Date().toLocaleTimeString()} - ${msg}`;
+        debugLog.prepend(p);
+        // Ensure debug log is visible if it has content
+        debugLog.style.display = 'block';
+    }
+
+    log('App initialized (Audio File Mode)');
+
+    // Audio Setup
+    // Note: filenames are case-sensitive on some systems.
+    const audioLeft = new Audio('left.MP3');
+    const audioRight = new Audio('right.MP3');
+
+    // Preload audio
+    audioLeft.preload = 'auto';
+    audioRight.preload = 'auto';
+
+    // Log audio events for debugging
+    function attachAudioDebug(audio, name) {
+        audio.addEventListener('canplaythrough', () => log(`${name} ready to play`));
+        audio.addEventListener('error', (e) => log(`Error loading ${name}: ${e.message}`));
+        audio.addEventListener('play', () => log(`${name} started playing`));
+        audio.addEventListener('ended', () => log(`${name} finished playing`));
+    }
+
+    attachAudioDebug(audioLeft, 'Left Audio');
+    attachAudioDebug(audioRight, 'Right Audio');
+
+    function playSound(direction) {
+        // Reset and play
+        if (direction === 'left') {
+            log('Playing: left.MP3');
+            audioLeft.currentTime = 0;
+            audioLeft.play().catch(e => log(`Playback failed: ${e.message}`));
+        } else if (direction === 'right') {
+            log('Playing: right.MP3');
+            audioRight.currentTime = 0;
+            audioRight.play().catch(e => log(`Playback failed: ${e.message}`));
+        }
+    }
+
+    // Manual Test Button
+    testAudioBtn.addEventListener('click', () => {
+        log('Manual Test: Playing Right Audio');
+        playSound('right');
+    });
+
+    // Touch Event Vars
     let touchStartX = 0;
     let touchEndX = 0;
     let isSwiping = false;
-
-    // Minimum distance for a swipe to be registered
     const minSwipeDistance = 50;
-
-    // Sound setup
-    const synth = window.speechSynthesis;
-    let voices = [];
-
-    function populateVoices() {
-        voices = synth.getVoices();
-    }
-
-    populateVoices();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = populateVoices;
-    }
-
-    function speak(text) {
-        // Cancel any previous speech to ensure immediate response
-        synth.cancel();
-
-        const utterThis = new SpeechSynthesisUtterance(text);
-
-        // Try to find a French male voice
-        // Common male French voice names/IDs often contain 'Thomas', 'Nicolas', 'Google', or just generic 'fr-FR' often defaults to female on some systems so we try to be specific if possible or iterate.
-        // Note: Voice implementation is browser/OS dependent. 
-        const frVoices = voices.filter(voice => voice.lang.includes('fr'));
-
-        // Prioritize known male voices or voices that might be male based on heuristical naming if available
-        // 'Thomas' is a common male voice on Apple, 'Nicolas' on others. 'Google Français' is often male or neutral.
-        const maleVoice = frVoices.find(voice =>
-            voice.name.toLowerCase().includes('thomas') ||
-            voice.name.toLowerCase().includes('nicolas') ||
-            voice.name.toLowerCase().includes('cyril') ||
-            (voice.name.toLowerCase().includes('google') && !voice.name.toLowerCase().includes('yaoyao')) // Google sometimes has specific names
-        );
-
-        if (maleVoice) {
-            utterThis.voice = maleVoice;
-        } else if (frVoices.length > 0) {
-            // Fallback to the first available French voice if no specific male voice is found
-            utterThis.voice = frVoices[0];
-        } else {
-            utterThis.lang = 'fr-FR';
-        }
-
-        // Lower pitch slightly can sometimes make a geometric voice sound more masculine if a specific male voice isn't found
-        if (!maleVoice) {
-            utterThis.pitch = 0.8;
-        } else {
-            utterThis.pitch = 1;
-        }
-
-        utterThis.rate = 1;
-
-        synth.speak(utterThis);
-    }
 
     // Touch Event Listeners
     appContainer.addEventListener('touchstart', (e) => {
@@ -82,16 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('swiping-left', 'swiping-right');
     }, { passive: false });
 
-    // Optional: Add visual feedback during swipe (touchmove) if desired, 
-    // but the main logic is on touchend for direction determination.
-    // For immediate visual feedback:
     appContainer.addEventListener('touchmove', (e) => {
         if (!isSwiping) return;
 
         const currentX = e.changedTouches[0].screenX;
         const diff = currentX - touchStartX;
 
-        if (Math.abs(diff) > 20) { // Slight threshold for visual noise
+        if (Math.abs(diff) > 20) {
             if (diff > 0) {
                 document.body.classList.add('swiping-right');
                 document.body.classList.remove('swiping-left');
@@ -104,24 +98,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleSwipe() {
         const swipeDistance = touchEndX - touchStartX;
+        log(`Swipe distance: ${swipeDistance}`);
 
         if (Math.abs(swipeDistance) < minSwipeDistance) {
-            return; // Not a valid swipe
+            log('Swipe too short');
+            return;
         }
 
         if (swipeDistance > 0) {
             // Swiped Right (Left to Right)
-            // "coucou ma belle"
-            console.log('Swiped Right');
-            speak("coucou ma belle");
+            log('Swiped Right -> Triggering Right Audio');
+            playSound('right');
         } else {
             // Swiped Left (Right to Left)
-            // "une salope"
-            console.log('Swiped Left');
-            speak("une salope");
+            log('Swiped Left -> Triggering Left Audio');
+            playSound('left'); // Swiping left (dragging right to left) corresponds to "left" sound?
+            // Wait, "une salope" for right-to-left swipe.
+            // Right-to-left means startX > endX, so distance is negative.
+            // My code: distance = end - start. if distance < 0 (negative), it's right-to-left.
+            // In the `else` block above (distance <= 0), it is Swiped Left (Right to Left).
+            // So playing "left" audio there is correct mapping for "une salope" if left.MP3 is that sound.
+            // The plan said: left.mp3: For right-to-left swipe ("une salope").
+            // So yes, `playSound('left')` is correct here.
         }
     }
-
-    // Privacy: No logging or storage of any kind is implemented here.
-    // The console.log is for debugging purposes during development and is ephemeral.
 });
